@@ -158,8 +158,8 @@ const logoutUSer = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1, //* this removes the field from document
       },
     },
     {
@@ -179,9 +179,10 @@ const logoutUSer = asyncHandler(async (req, res) => {
 
 //* creating endpiont for the client or users
 const refreshAccessToken = asyncHandler(async (req, res) => {
+  // const refreshToken = req.body?.refreshToken;
   const incomingFrefreshToken =
-    req.cookie.refreshToken || req.body.refreshToken;
-
+    req.cookies.refreshToken || req.body.refreshToken;
+  console.log(incomingFrefreshToken);
   if (!incomingFrefreshToken) {
     throw new ApiError(401, "Unauthorized request");
   }
@@ -321,11 +322,11 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   if (!username?.trim()) {
     throw new ApiError(200, "username is missing");
   }
-
+  console.log(username);
   const channel = await User.aggregate([
     {
       $match: {
-        username: username?.toLowerCase(),
+        username,
       },
     },
     {
@@ -350,7 +351,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
           $size: "$subscribers",
         },
         channelsSubscribedToCount: {
-          $size: "subscribedTo",
+          $size: "$subscribedTo",
         },
         isSubscribed: {
           $cond: {
@@ -381,6 +382,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, channel[0], "User channel fetche successfully"));
 });
 
+//* get the watch history *//
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
@@ -434,6 +436,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       )
     );
 });
+
 export {
   registerUser,
   loginUser,
